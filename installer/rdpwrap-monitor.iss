@@ -37,12 +37,16 @@ Name: "startservice"; Description: "Start the service after installation"; Group
 
 [Files]
 ; Service files - supports both local build and GitHub Actions paths
+; Check for GitHub Actions publish path first
 #if FileExists("..\publish\service\win-x64\RdpWrapMonitor.Service.exe")
 Source: "..\publish\service\win-x64\*"; DestDir: "{app}\Service"; Flags: recursesubdirs ignoreversion
 Source: "..\publish\setup\win-x64\*"; DestDir: "{app}\Setup"; Flags: recursesubdirs ignoreversion
-#elseif FileExists("..\src\RdpWrapMonitor.Service\bin\Release\net8.0-windows\win-x64\publish\RdpWrapMonitor.Service.exe")
+#else
+; Fall back to local build path
+#if FileExists("..\src\RdpWrapMonitor.Service\bin\Release\net8.0-windows\win-x64\publish\RdpWrapMonitor.Service.exe")
 Source: "..\src\RdpWrapMonitor.Service\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}\Service"; Flags: recursesubdirs ignoreversion
 Source: "..\src\RdpWrapMonitor.Setup\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}\Setup"; Flags: recursesubdirs ignoreversion
+#endif
 #endif
 #if FileExists("..\README.md")
 Source: "..\README.md"; DestDir: "{app}"; Flags: isreadme
