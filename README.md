@@ -28,7 +28,37 @@ Before configuring the service, you need to create a Gmail App Password:
 6. Click "Generate"
 7. **Copy the 16-character password** (you won't see it again)
 
+## Downloads
+
+### Pre-built Releases
+
+Download the latest release from: https://github.com/VibsWorld/rdp-wrap-monitor/releases
+
+**Available packages:**
+- `RDPWrapMonitor-Setup-*.exe` - Windows Installer (recommended)
+- `RDPWrapMonitor-*.zip` - Manual installation (includes Service + Setup)
+- `RDPWrapMonitor.Service-*.zip` - Service only
+- `RDPWrapMonitor.Setup-*.zip` - Setup utility only
+
+ARM64 versions are also available for Windows on ARM devices.
+
+### Build from Source
+
+```powershell
+# Build release packages locally
+.\build-release.ps1 -Version "1.0.0"
+```
+
 ## Installation
+
+### Option 1: Using Installer (Recommended)
+
+1. Download `RDPWrapMonitor-Setup-*.exe` from Releases
+2. Run as Administrator
+3. Follow the installation wizard
+4. Run the Setup utility to configure Gmail credentials
+
+### Option 2: Manual Installation
 
 ### Step 1: Run Setup Utility
 
