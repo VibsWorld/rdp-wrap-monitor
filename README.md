@@ -99,9 +99,53 @@ cd C:\Vaibhav\PVR\RdpWrapMonitor
 
 ## Configuration
 
-Configuration is stored in: `%APPDATA%\RdpWrapMonitor\config.json`
+### Configuration Files
 
-The password is encrypted using Windows DPAPI (tied to your user account).
+The service uses a two-layer configuration system:
+
+1. **appsettings.json** (defaults, stored with the service)
+   - Contains default values including RDP Wrapper installation path
+   - Located in the service installation directory
+
+2. **config.json** (user-specific, encrypted)
+   - Located at: `%APPDATA%\RdpWrapMonitor\config.json`
+   - Stores Gmail credentials (encrypted with Windows DPAPI)
+   - Overrides settings from appsettings.json
+
+### Configurable Settings
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `LocalRdpWrapPath` | RDP Wrapper installation directory | `C:\Program Files\RDP Wrapper\` |
+| `LocalIniPath` | Full path to rdpwrap.ini (computed from LocalRdpWrapPath) | `C:\Program Files\RDP Wrapper\rdpwrap.ini` |
+| `RemoteIniUrl` | GitHub URL for latest rdpwrap.ini | sebaxakerhtc's rdpwrap.ini |
+| `CheckIntervalHours` | How often to check for updates | `6` |
+| `GmailAddress` | Gmail address for sending notifications | (required) |
+| `EncryptedAppPassword` | Gmail App Password (encrypted) | (required) |
+| `RecipientEmail` | Email address for notifications | (same as GmailAddress) |
+
+### Changing RDP Wrapper Installation Path
+
+If you have RDP Wrapper installed in a custom location:
+
+**Option 1: Using Setup Utility (Recommended)**
+```powershell
+dotnet run --project .\src\RdpWrapMonitor.Setup\RdpWrapMonitor.Setup.csproj
+```
+When prompted for "RDP Wrapper Installation Path", enter your custom path.
+
+**Option 2: Edit appsettings.json directly**
+1. Navigate to the service installation folder
+2. Open `appsettings.json` in a text editor
+3. Modify `LocalRdpWrapPath`:
+```json
+{
+  "ServiceConfig": {
+    "LocalRdpWrapPath": "D:\\Tools\\RDP Wrapper\\"
+  }
+}
+```
+4. Restart the service: `Restart-Service "RDPWrap Monitor"`
 
 ### Manual Configuration Edit
 
@@ -158,13 +202,37 @@ RdpWrapMonitor/
 │   │   │   └── IniMonitor.cs       # Remote/local file comparison
 │   │   ├── Email/
 │   │   │   └── EmailNotifier.cs    # Gmail SMTP sender
-│   │   └── Utils/
-│   │       └── TermServiceController.cs # Service control
+│   │   ├── Utils/
+│   │   │   └── TermServiceController.cs # Service control
+│   │   └── appsettings.json        # Default configuration
 │   └── RdpWrapMonitor.Setup/       # One-time config utility
 │       └── Program.cs              # Setup wizard
-├── install.ps1                      # Installation script
+├── .github/
+│   └── workflows/
+│       ├── release.yml             # Release build workflow (on tag)
+│       └── ci.yml                  # CI build workflow (on main commit)
+├── installer/
+│   ├── rdpwrap-monitor.iss         # Inno Setup installer script
+│   ├── install-service.ps1         # Post-install service registration
+│   └── LICENSE.rtf                 # License for installer
+├── build-release.ps1               # Local release build script
+├── install.ps1                     # Manual installation script
 └── README.md
 ```
+
+## CI/CD
+
+### Automated Builds
+
+- **On every commit to `main`**: Creates a draft pre-release with build artifacts
+- **On version tag (v*)**: Creates an official release
+
+Artifacts include:
+- Windows installer (.exe)
+- ZIP packages (x64 and ARM64)
+- Service and Setup utilities separately
+
+Builds are attached to GitHub Releases: https://github.com/VibsWorld/rdp-wrap-monitor/releases
 
 ## License
 

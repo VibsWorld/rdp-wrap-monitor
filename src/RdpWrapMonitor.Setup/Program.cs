@@ -83,7 +83,16 @@ class Program
         Console.WriteLine("RDPWrap Settings");
         Console.WriteLine("----------------");
         Console.WriteLine($"Remote INI URL: {config.RemoteIniUrl}");
-        Console.WriteLine($"Local INI Path: {config.LocalIniPath}");
+        Console.Write($"RDP Wrapper Installation Path [{config.LocalRdpWrapPath}]: ");
+        var rdpPathInput = Console.ReadLine()?.Trim();
+        if (!string.IsNullOrEmpty(rdpPathInput))
+        {
+            // Ensure path ends with backslash
+            config.LocalRdpWrapPath = rdpPathInput.TrimEnd('\\') + "\\";
+        }
+        // Compute LocalIniPath from the RDPWrap path
+        config.LocalIniPath = Path.Combine(config.LocalRdpWrapPath, "rdpwrap.ini");
+        Console.WriteLine($"Local INI Path (computed): {config.LocalIniPath}");
 
         // Save configuration
         var options = new JsonSerializerOptions
@@ -176,5 +185,6 @@ public class ServiceConfig
     public string RecipientEmail { get; set; } = string.Empty;
     public int CheckIntervalHours { get; set; } = 6;
     public string RemoteIniUrl { get; set; } = "https://raw.githubusercontent.com/sebaxakerhtc/rdpwrap.ini/master/rdpwrap.ini";
-    public string LocalIniPath { get; set; } = @"C:\Program Files\RDP Wrapper\rdpwrap.ini";
+    public string LocalRdpWrapPath { get; set; } = @"C:\Program Files\RDP Wrapper\";
+    public string LocalIniPath { get; set; } = string.Empty;
 }

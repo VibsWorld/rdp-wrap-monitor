@@ -1,0 +1,163 @@
+name: CI - Build on Commit
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '**.gitignore'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  DOTNET_VERSION: '8.0.x'
+
+jobs:
+  build-and-artifacts:
+    name: Build and Create Artifacts
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get short SHA
+      id: sha
+      run: echo "sha_short=${{ github.sha }}".Substring(0, 8) >> $env:GITHUB_OUTPUT
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build -c Release --no-restore
+
+    - name: Test (if applicable)
+      run: dotnet test -c Release --no-build --verbosity normal
+      continue-on-error: true
+
+    - name: Publish Service (win-x64)
+      run: |
+        dotnet publish src/RdpWrapMonitor.Service/RdpWrapMonitor.Service.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          /p:PublishSingleFile=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          /p:PublishDir=../../publish/service/win-x64
+
+    - name: Publish Setup (win-x64)
+      run: |
+        dotnet publish src/RdpWrapMonitor.Setup/RdpWrapMonitor.Setup.csproj `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          /p:PublishSingleFile=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          /p:PublishDir=../../publish/setup/win-x64
+
+    - name: Publish Service (win-arm64)
+      run: |
+        dotnet publish src/RdpWrapMonitor.Service/RdpWrapMonitor.Service.csproj `
+          -c Release `
+          -r win-arm64 `
+          --self-contained true `
+          /p:PublishSingleFile=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          /p:PublishDir=../../publish/service/win-arm64
+
+    - name: Publish Setup (win-arm64)
+      run: |
+        dotnet publish src/RdpWrapMonitor.Setup/RdpWrapMonitor.Setup.csproj `
+          -c Release `
+          -r win-arm64 `
+          --self-contained true `
+          /p:PublishSingleFile=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          /p:PublishDir=../../publish/setup/win-arm64
+
+    - name: Create ZIP packages
+      run: |
+        $version = "${{ steps.sha.outputs.sha_short }}"
+        Compress-Archive -Path publish/* -DestinationPath RDPWrapMonitor-dev-$version.zip -Force
+        Compress-Archive -Path publish/service/win-x64/* -DestinationPath RDPWrapMonitor.Service-dev-$version-x64.zip -Force
+        Compress-Archive -Path publish/setup/win-x64/* -DestinationPath RDPWrapMonitor.Setup-dev-$version-x64.zip -Force
+        Compress-Archive -Path publish/service/win-arm64/* -DestinationPath RDPWrapMonitor.Service-dev-$version-arm64.zip -Force
+        Compress-Archive -Path publish/setup/win-arm64/* -DestinationPath RDPWrapMonitor.Setup-dev-$version-arm64.zip -Force
+
+    - name: Create installer with Inno Setup
+      run: |
+        # Download and install Inno Setup
+        Write-Host "Downloading Inno Setup..."
+        $isUrl = "https://jrsoftware.org/download.php/is.exe"
+        $isPath = "${env:TEMP}\is.exe"
+        Invoke-WebRequest -Uri $isUrl -OutFile $isPath -UseBasicParsing
+
+        Write-Host "Installing Inno Setup..."
+        Start-Process $isPath -Wait -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/DIR=C:\Program Files (x86)\Inno Setup 6"
+
+        # Compile the installer
+        Write-Host "Compiling installer..."
+        Push-Location installer
+        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" rdpwrap-monitor.iss
+        Pop-Location
+
+        # Copy installer output
+        if (Test-Path "installer/Output/*.exe") {
+          Copy-Item "installer/Output/*.exe" -Destination "RDPWrapMonitor-Setup-dev-${{ steps.sha.outputs.sha_short }}.exe" -Force
+          Write-Host "Installer created successfully"
+        } else {
+          Write-Warning "Installer not found"
+        }
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          *.zip
+          RDPWrapMonitor-Setup-*.exe
+        retention-days: 30
+
+    - name: Create Draft Release (for commits)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: dev-${{ steps.sha.outputs.sha_short }}
+        name: "Dev Build ${{ steps.sha.outputs.sha_short }}"
+        draft: true
+        prerelease: true
+        body: |
+          ## Development Build
+
+          Automated build from commit ${{ github.sha }}
+
+          ### Included Files
+          - `RDPWrapMonitor-Setup-*.exe` - Windows Installer (recommended)
+          - `RDPWrapMonitor-dev-*.zip` - Complete package
+          - `RDPWrapMonitor.Service-dev-*-x64.zip` - Service only (x64)
+          - `RDPWrapMonitor.Setup-dev-*-x64.zip` - Setup utility (x64)
+          - `*-arm64.zip` - ARM64 versions
+
+          ### Installation
+          1. Download and run the installer OR extract the ZIP package
+          2. Run the Setup utility to configure Gmail credentials
+          3. Install the Windows Service
+
+          ---
+          *This is an automated development build. For stable releases, see the main releases page.*
+        files: |
+          *.zip
+          RDPWrapMonitor-Setup-*.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

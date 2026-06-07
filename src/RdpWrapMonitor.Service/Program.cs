@@ -13,27 +13,40 @@ builder.Services.AddWindowsService(options =>
     options.ServiceName = "RDPWrap Monitor";
 });
 
-// Load configuration
+// Load configuration from appsettings.json first (defaults)
+builder.Services.Configure<ServiceConfig>(builder.Configuration.GetSection("ServiceConfig"));
+
+// Override with user config from %APPDATA% if it exists
 var configPath = Path.Combine(
     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
     "RdpWrapMonitor", "config.json");
 
-builder.Services.Configure<ServiceConfig>(options =>
+builder.Services.PostConfigure<ServiceConfig>(options =>
 {
     if (File.Exists(configPath))
     {
         var json = File.ReadAllText(configPath);
-        var config = System.Text.Json.JsonSerializer.Deserialize<ServiceConfig>(json);
-        if (config != null)
+        var userConfig = System.Text.Json.JsonSerializer.Deserialize<ServiceConfig>(json);
+        if (userConfig != null)
         {
-            options.GmailAddress = config.GmailAddress;
-            options.EncryptedAppPassword = config.EncryptedAppPassword;
-            options.RecipientEmail = config.RecipientEmail;
-            options.CheckIntervalHours = config.CheckIntervalHours;
-            options.RemoteIniUrl = config.RemoteIniUrl;
-            options.LocalIniPath = config.LocalIniPath;
+            // Only override sensitive user-specific settings, not paths
+            if (!string.IsNullOrEmpty(userConfig.GmailAddress))
+                options.GmailAddress = userConfig.GmailAddress;
+            if (!string.IsNullOrEmpty(userConfig.EncryptedAppPassword))
+                options.EncryptedAppPassword = userConfig.EncryptedAppPassword;
+            if (!string.IsNullOrEmpty(userConfig.RecipientEmail))
+                options.RecipientEmail = userConfig.RecipientEmail;
+            if (userConfig.CheckIntervalHours > 0)
+                options.CheckIntervalHours = userConfig.CheckIntervalHours;
+            if (!string.IsNullOrEmpty(userConfig.RemoteIniUrl))
+                options.RemoteIniUrl = userConfig.RemoteIniUrl;
         }
     }
+
+    // Initialize computed paths
+    options.Initialize();
+
+    // Set runtime paths
     options.LogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "RdpWrapMonitor", "logs", "service.log");
