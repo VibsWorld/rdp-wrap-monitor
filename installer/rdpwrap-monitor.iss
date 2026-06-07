@@ -20,7 +20,7 @@ DefaultGroupName=RDPWrap Monitor
 LicenseFile=LICENSE.rtf
 OutputDir=Output
 OutputBaseFilename=RDPWrapMonitor-Setup-{#MyAppVersion}
-SetupIconFile=setup.ico
+; SetupIconFile=setup.ico  ; Optional: add your own icon
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -36,9 +36,17 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startservice"; Description: "Start the service after installation"; GroupDescription: "Post-installation tasks"; Flags: checkedonce
 
 [Files]
+; Service files - supports both local build and GitHub Actions paths
+#if FileExists("..\publish\service\win-x64\RdpWrapMonitor.Service.exe")
+Source: "..\publish\service\win-x64\*"; DestDir: "{app}\Service"; Flags: recursesubdirs ignoreversion
+Source: "..\publish\setup\win-x64\*"; DestDir: "{app}\Setup"; Flags: recursesubdirs ignoreversion
+#elseif FileExists("..\src\RdpWrapMonitor.Service\bin\Release\net8.0-windows\win-x64\publish\RdpWrapMonitor.Service.exe")
 Source: "..\src\RdpWrapMonitor.Service\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}\Service"; Flags: recursesubdirs ignoreversion
 Source: "..\src\RdpWrapMonitor.Setup\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}\Setup"; Flags: recursesubdirs ignoreversion
+#endif
+#if FileExists("..\README.md")
 Source: "..\README.md"; DestDir: "{app}"; Flags: isreadme
+#endif
 Source: "install-service.ps1"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
 
 [Icons]
