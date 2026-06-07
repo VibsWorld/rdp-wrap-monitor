@@ -55,8 +55,8 @@ Source: "install-service.ps1"; DestDir: "{app}"; Flags: skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\Configure RDPWrap Monitor"; Filename: "{app}\Setup\RdpWrapMonitor.Setup.exe"
-Name: "{group}\Open Log Folder"; Filename: "{appdata}\RdpWrapMonitor\logs"
-Name: "{group}\Open Config Folder"; Filename: "{appdata}\RdpWrapMonitor"
+Name: "{group}\Open Log Folder"; Filename: "{userappdata}\RdpWrapMonitor\logs"
+Name: "{group}\Open Config Folder"; Filename: "{userappdata}\RdpWrapMonitor"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\Setup\RdpWrapMonitor.Setup.exe"; Tasks: desktopicon
 
@@ -79,11 +79,6 @@ begin
   ServiceCheckBox.Width := 400;
   ServiceCheckBox.Caption := 'Install RDPWrap Monitor as a Windows Service (requires Administrator)';
   ServiceCheckBox.Checked := True;
-end
-
-function NextButtonClicked: Boolean;
-begin
-  Result := True;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
