@@ -79,11 +79,6 @@ begin
   ServiceCheckBox.Width := 400;
   ServiceCheckBox.Caption := 'Install RDPWrap Monitor as a Windows Service (requires Administrator)';
   ServiceCheckBox.Checked := True;
-end
-
-function NextButtonClicked: Boolean;
-begin
-  Result := True;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
