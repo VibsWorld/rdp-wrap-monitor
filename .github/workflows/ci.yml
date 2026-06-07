@@ -132,18 +132,19 @@ jobs:
           RDPWrapMonitor-Setup-*.exe
         retention-days: 30
 
-    - name: Create Draft Release (for commits)
+    - name: Update "dev-latest" Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: dev-${{ steps.sha.outputs.sha_short }}
-        name: "Dev Build ${{ steps.sha.outputs.sha_short }}"
-        draft: true
+        tag_name: dev-latest
+        name: "Latest Dev Build"
         prerelease: true
         body: |
-          ## Development Build
+          ## Latest Development Build
 
-          Automated build from commit ${{ github.sha }}
+          Automated build from commit [${{ github.sha }}](${{ github.event.head_commit.url }})
+
+          **Commit:** ${{ github.event.head_commit.message }}
 
           ### Included Files
           - `RDPWrapMonitor-Setup-*.exe` - Windows Installer (recommended)
