@@ -34,7 +34,10 @@ jobs:
 
     - name: Get short SHA
       id: sha
-      run: echo "sha_short=${{ github.sha }}".Substring(0, 8) >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      run: |
+        $sha = "${{ github.sha }}".Substring(0, 8)
+        echo "sha_short=$sha" >> $env:GITHUB_OUTPUT
 
     - name: Restore dependencies
       run: dotnet restore
